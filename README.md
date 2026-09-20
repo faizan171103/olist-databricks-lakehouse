@@ -326,6 +326,16 @@ The analytical model supports reporting across:
 * Freight costs
 * Customer reviews
 
+
+<img width="1996" height="1110" alt="image" src="https://github.com/user-attachments/assets/7c8b3c63-b5de-4901-9008-358351b1ffa8" />
+
+
+<img width="1998" height="1126" alt="image" src="https://github.com/user-attachments/assets/1587b352-8907-41f9-b6d0-7460b13e5da6" />
+
+
+<img width="1996" height="1110" alt="image" src="https://github.com/user-attachments/assets/539d94ad-c262-4f58-a2fa-cc8649553fc9" />
+
+
 ---
 
 ### Key Engineering Decisions
