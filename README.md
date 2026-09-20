@@ -1,226 +1,143 @@
-Olist E-Commerce Analytics Platform
+# Olist E-Commerce Analytics Platform
 
-An end-to-end Analytics Engineering project transforming raw Brazilian e-commerce data into trusted, business-ready datasets for analytics and decision-making.
+> **An end-to-end Analytics Engineering project transforming raw Brazilian e-commerce data into trusted, business-ready analytical models using Databricks, dbt, SQL, and Power BI.**
 
-This project builds an analytics platform around the Olist Brazilian E-Commerce dataset, following an Analytics Engineering approach to transform raw operational data into clean, tested, documented, and reusable analytical models.
+This project builds an analytics platform using the **Olist Brazilian E-Commerce dataset**. The goal is to transform raw operational data into reliable datasets that can be used for business analysis without requiring users to work directly with raw source tables.
 
-Rather than connecting a BI tool directly to raw source tables, the project establishes a transformation layer that separates raw data, cleaned data, business logic, and analytical consumption.
+The project follows a **Bronze → Silver → Gold** architecture, with **dbt** managing the transformation and modeling layer.
 
-The result is a reusable data foundation that can answer questions around sales, customers, products, sellers, payments, logistics, and customer experience.
+---
 
-What This Project Demonstrates
+### Architecture
 
-This project focuses on the core responsibilities of an Analytics Engineer:
-
-Designing analytical data models
-Transforming raw data using SQL and dbt
-Building reusable staging models
-Developing fact and dimension tables
-Defining business logic in centralized models
-Implementing data quality tests
-Managing dependencies with dbt
-Building a dimensional model for BI
-Working with a Lakehouse architecture
-Version-controlling analytics code with Git
-Delivering trusted datasets to Power BI
-
-The overall workflow is:
-
-Raw Operational Data
+```text
+Olist CSV Data
+      │
+      ▼
+Databricks + Unity Catalog
+      │
+      ▼
+   ┌─────────┐
+   │ BRONZE  │  Raw source tables
+   └────┬────┘
         │
         ▼
-   Databricks
+      dbt
         │
         ▼
-      Bronze
-   Raw / Preserved
+   ┌─────────┐
+   │ SILVER  │  Cleaned & standardized
+   └────┬────┘
         │
         ▼
-       dbt
+      dbt
         │
         ▼
-      Silver
- Cleaned / Standardized
+   ┌─────────┐
+   │  GOLD   │  Facts & dimensions
+   └────┬────┘
         │
         ▼
-       dbt
+    Power BI
         │
         ▼
-       Gold
- Business / Analytical Models
-        │
-        ▼
-     Power BI
-        │
-        ▼
- Analytics & Reporting
-1. Project Context
+ Business Analytics
+```
 
-E-commerce businesses generate data across multiple operational domains.
+The architecture separates:
 
-Orders, customers, products, sellers, payments, reviews, and logistics information are often stored separately. While each dataset may be useful individually, meaningful business analysis requires these sources to be connected through consistent definitions and analytical models.
+**Raw Data → Transformation → Analytical Models → BI**
 
-This project addresses that problem by creating a centralized analytical layer on top of the Olist dataset.
+This keeps the data pipeline modular, testable, and reusable.
 
-Instead of treating the source CSV files as the final analytical data, the project transforms them into a structured model designed around business questions.
+---
 
-2. Business Questions
+### Technology Stack
 
-The analytical layer is designed to support questions such as:
+| Area            | Technology                |
+| --------------- | ------------------------- |
+| Data Platform   | Databricks                |
+| Governance      | Unity Catalog             |
+| Transformation  | dbt + SQL                 |
+| Processing      | Spark / PySpark           |
+| Data Modeling   | Dimensional / Star Schema |
+| BI              | Power BI                  |
+| Version Control | Git / GitHub              |
+| Development     | VS Code                   |
+| Languages       | SQL / Python              |
 
-Sales
-How are sales changing over time?
-Which product categories contribute the most sales?
-What is the average order value?
-How does order volume vary across regions?
-Customers
-Where are customers located?
-How frequently do customers purchase?
-Which customer groups contribute the most value?
-Products
-Which categories and products perform best?
-How do product characteristics relate to sales?
-What is the relationship between product price and freight cost?
-Sellers
-Which sellers generate the most order value?
-How does seller performance vary geographically?
-How does seller activity differ across regions?
-Logistics
-How long do orders take to reach customers?
-Which orders experience delivery delays?
-How does freight cost compare with product price?
-Customer Experience
-How are review scores distributed?
-How does delivery performance relate to customer reviews?
-Which areas of the marketplace show weaker customer experience?
-3. Architecture
+---
 
-The platform follows a Medallion-style Lakehouse architecture.
+### Dataset
 
-                    ┌──────────────────────┐
-                    │   Olist Source Data  │
-                    │       CSV Files      │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │      Databricks      │
-                    │     Unity Catalog    │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │       BRONZE         │
-                    │   Raw Source Data    │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │         dbt          │
-                    │   SQL Transformations│
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │       SILVER         │
-                    │ Clean & Standardized │
-                    │      Models          │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │         dbt          │
-                    │   Business Logic     │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │        GOLD          │
-                    │ Facts + Dimensions   │
-                    └──────────┬───────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │      Power BI        │
-                    │ Semantic Model & BI  │
-                    └──────────────────────┘
+The project uses the **Olist Brazilian E-Commerce dataset**, covering multiple areas of the marketplace:
 
-The architecture intentionally separates:
+* Customers
+* Orders
+* Order Items
+* Products
+* Sellers
+* Payments
+* Reviews
+* Geolocation
+* Product Category Translation
 
-Raw data → Transformation → Business logic → Consumption
+These datasets allow the platform to connect transactional, customer, product, seller, payment, logistics, and review information into a unified analytical model.
 
-This makes analytical logic easier to maintain, test, understand, and reuse.
+---
 
-4. Technology Stack
-Layer	Technology
-Data Platform	Databricks
-Governance	Unity Catalog
-Processing	Apache Spark / PySpark
-Transformation	dbt + SQL
-Analytical Storage	Databricks
-Data Modeling	Dimensional Modeling
-BI	Power BI
-Version Control	Git / GitHub
-Development	VS Code
-Languages	SQL / Python
+### Project Context
 
-The core of the project is SQL + dbt + analytical modeling, with Databricks providing the Lakehouse environment.
+E-commerce data is distributed across multiple operational datasets. Analyzing these datasets independently makes it difficult to establish consistent metrics and relationships.
 
-5. Source Data
+This project creates a centralized analytical layer that transforms the source data into models designed around business questions such as:
 
-The project uses the Olist Brazilian E-Commerce dataset.
+* How are sales changing over time?
+* Which product categories generate the most sales?
+* Which customers and regions contribute the most value?
+* How do sellers perform across different regions?
+* How long do orders take to reach customers?
+* Which payment methods are most commonly used?
+* How are customer reviews distributed?
+* How does delivery performance relate to customer experience?
 
-The source consists of multiple datasets covering different parts of the marketplace:
+---
 
-customers
-orders
-order_items
-payments
-reviews
-products
-sellers
-geolocation
-category_translation
+### Bronze Layer
 
-These sources collectively provide the information required to analyze the marketplace from several business perspectives.
+The Bronze layer contains the raw Olist source data loaded into Databricks and registered through Unity Catalog.
 
-6. Bronze Layer
-
-The Bronze layer represents the source data as closely as possible.
-
+```text
 e-commerce_olist
 └── bronze_data
     ├── olist_customers_dataset
-    ├── olist_geolocation_dataset
     ├── olist_order_items_dataset
     ├── olist_order_payments_dataset
     ├── olist_order_reviews_dataset
     ├── olist_orders_dataset
     ├── olist_products_dataset
     ├── olist_sellers_dataset
+    ├── olist_geolocation_dataset
     └── product_category_name_translation
-Design principle
+```
 
-The Bronze layer is not treated as the place to fix everything.
+The Bronze layer is kept close to the original source so that raw information remains available for:
 
-Raw information is preserved so that downstream transformations can be traced back to the original source.
+* Auditing
+* Debugging
+* Reprocessing
+* Data lineage
+* Investigating source-data issues
 
-This provides a useful foundation for:
+Source-quality issues are handled downstream rather than modifying the raw data directly.
 
-Auditing
-Debugging
-Reprocessing
-Data lineage
-Investigating source-data issues
+---
 
-For example, malformed review records were retained in Bronze and handled during downstream transformation rather than modifying the raw source.
+### Silver Layer
 
-7. Silver Layer
+The Silver layer transforms raw source tables into clean and standardized staging models using **dbt and SQL**.
 
-The Silver layer is where the raw source becomes usable analytical data.
-
-dbt is used to create reusable staging models:
-
+```text
 stg_customers
 stg_orders
 stg_order_items
@@ -230,119 +147,288 @@ stg_products
 stg_sellers
 stg_geolocation
 stg_category_translation
+```
 
-Typical transformations include:
+Transformations include:
 
-Data type standardization
+* Data type standardization
+* Null handling
+* String normalization
+* Timestamp conversion
+* Data validation
+* Filtering invalid records
+* Preparing consistent fields for downstream models
+
+Example:
+
+```sql
 CAST(price AS DECIMAL(12,2))
+```
 
-CAST(payment_value AS DECIMAL(12,2))
-
+```sql
 CAST(order_purchase_timestamp AS TIMESTAMP)
+```
 
-CAST(review_score AS INT)
-Standardization
-TRIM(customer_id)
-
-UPPER(customer_city)
-
-UPPER(customer_state)
-
-LOWER(order_status)
-Data validation
+```sql
 WHERE order_id IS NOT NULL
+```
 
-and business-rule validation such as:
+The Silver layer provides a consistent foundation for the analytical models.
 
-review_score BETWEEN 1 AND 5
+---
 
-The objective is not simply to "clean data", but to establish consistent models that downstream analytics can depend on.
+### Gold Layer
 
-8. Gold Layer
+The Gold layer contains the business-ready analytical models used by downstream analytics and Power BI.
 
-The Gold layer represents the analytical interface of the platform.
+#### Dimensions
 
-Instead of exposing raw operational structures to BI users, business logic is organized into reusable fact and dimension models.
-
-Dimensions
+```text
 dim_customers
 dim_products
 dim_sellers
 dim_date
-Facts
+```
+
+#### Facts
+
+```text
 fact_orders
 fact_order_items
 fact_payments
 fact_reviews
+```
 
-This creates a dimensional model suitable for analytical workloads and Power BI.
+These models follow a dimensional modeling approach and provide a structured interface for analytical queries and reporting.
 
-9. Dimensional Model
+---
 
-The analytical model follows a star-schema-oriented design.
+### Dimensional Model
 
-                    dim_date
-                       │
-                       ▼
-dim_customers ───► fact_orders
-                       │
-                       │
-                 ┌─────┴─────┐
-                 ▼           ▼
+```text
+                     dim_date
+                        │
+                        ▼
+dim_customers ────► fact_orders
+                        │
+                 ┌──────┴──────┐
+                 ▼             ▼
           fact_payments   fact_reviews
 
 
-dim_products ───► fact_order_items ◄─── dim_sellers
+dim_products ──► fact_order_items ◄── dim_sellers
+```
 
-dbt
+The model separates descriptive dimensions from measurable business events, creating a structure suitable for analytical workloads and Power BI.
 
-dbt is the central transformation framework in the project.
+---
 
-The transformation graph follows:
+### Data Quality
 
-Sources
-   │
-   ▼
-Staging Models
-   │
-   ▼
-Business Models
-   │
-   ▼
-Facts / Dimensions
+Data quality is incorporated into the dbt transformation workflow.
 
-The project uses core dbt concepts including:
+Tests cover areas such as:
 
-source()
-ref()
-SQL models
-Schema tests
-Model dependencies
-Model organization
-Documentation metadata
+* Unique identifiers
+* Required fields
+* Accepted values
+* Source validation
+* Model relationships
 
-Engineering Decisions
-Preserve raw data
+Examples include validation of:
 
-Bronze remains close to the source instead of being aggressively transformed.
+```text
+customer_id
+order_id
+product_id
+seller_id
+```
 
-Reason: maintain traceability and reproducibility.
+and fields such as:
 
-Separate staging from business logic
+```text
+order_status
+review_score
+```
 
-Silver models handle standardization and preparation, while Gold models introduce analytical business logic.
+Raw source issues are handled in downstream models while keeping the original Bronze data available for investigation and lineage.
 
-Reason: avoid mixing source cleanup with business definitions.
+---
 
-Use dimensional modeling
+### dbt
 
-Facts and dimensions provide a consistent interface for analytical workloads.
+dbt acts as the core transformation layer of the project.
 
-Reason: make downstream BI consumption simpler and more predictable.
+```text
+Bronze Sources
+      │
+      ▼
+Silver Staging Models
+      │
+      ▼
+Gold Analytical Models
+      │
+      ▼
+Power BI
+```
 
-Centralize transformations in dbt
+The project uses core dbt functionality including:
 
-Business logic is implemented as version-controlled SQL models.
+* `source()`
+* `ref()`
+* SQL models
+* Schema tests
+* Model dependencies
+* Reusable transformations
+* Documentation metadata
 
-Reason: improve maintainability, testing, lineage, and collaboration.
+Example source reference:
+
+```sql
+FROM {{ source('olist_bronze', 'olist_orders_dataset') }}
+```
+
+Example model dependency:
+
+```sql
+FROM {{ ref('stg_orders') }}
+```
+
+Using `ref()` allows dbt to understand relationships between models and construct the transformation workflow.
+
+---
+
+### Power BI
+
+Power BI consumes the **Gold analytical layer** rather than the raw source data.
+
+```text
+Gold Models
+     │
+     ▼
+Power BI Semantic Model
+     │
+     ▼
+DAX Measures
+     │
+     ▼
+Dashboards & Reports
+```
+
+The analytical model supports reporting across:
+
+* Sales performance
+* Customer behavior
+* Product performance
+* Seller performance
+* Payment methods
+* Delivery performance
+* Freight costs
+* Customer reviews
+
+---
+
+### Key Engineering Decisions
+
+**Preserve raw data**
+
+Bronze remains close to the source to maintain traceability and reproducibility.
+
+**Separate staging and analytical models**
+
+Silver focuses on cleaning and standardization, while Gold provides business-ready analytical structures.
+
+**Use dimensional modeling**
+
+Facts and dimensions provide a consistent structure for analytical queries and BI consumption.
+
+**Centralize transformations in dbt**
+
+SQL transformations, dependencies, and data-quality tests are maintained within the dbt project.
+
+---
+
+### Running the Project
+
+Clone the repository:
+
+```bash
+git clone https://github.com/faizan171103/olist-databricks-lakehouse.git
+```
+
+Navigate to the project:
+
+```bash
+cd olist-databricks-lakehouse
+```
+
+Configure the local Databricks connection and then validate the dbt environment:
+
+```bash
+dbt debug
+```
+
+Build the models:
+
+```bash
+dbt build
+```
+
+Run the data-quality tests:
+
+```bash
+dbt test
+```
+
+---
+
+### Project Outcome
+
+The final platform creates a complete path from raw operational data to business analytics:
+
+```text
+Raw Olist Data
+      │
+      ▼
+  Databricks
+      │
+      ▼
+    Bronze
+      │
+      ▼
+     dbt
+      │
+      ▼
+    Silver
+      │
+      ▼
+     dbt
+      │
+      ▼
+     Gold
+      │
+      ▼
+Dimensional Model
+      │
+      ▼
+   Power BI
+      │
+      ▼
+Business Analytics
+```
+
+The project demonstrates practical Analytics Engineering across:
+
+**SQL · dbt · Data Modeling · Data Quality · Databricks · Lakehouse Architecture · Git · Power BI**
+
+---
+
+### Author
+
+**Mohd Faizanul Haque**
+
+Data Analytics / Analytics Engineering Portfolio
+
+[GitHub — @faizan171103](https://github.com/faizan171103)
+
 
