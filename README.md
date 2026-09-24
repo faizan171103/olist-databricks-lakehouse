@@ -333,7 +333,7 @@ The analytical model supports reporting across:
 <img width="1998" height="1126" alt="image" src="https://github.com/user-attachments/assets/1587b352-8907-41f9-b6d0-7460b13e5da6" />
 
 
-<img width="1996" height="1110" alt="image" src="https://github.com/user-attachments/assets/539d94ad-c262-4f58-a2fa-cc8649553fc9" />
+
 
 
 ---
