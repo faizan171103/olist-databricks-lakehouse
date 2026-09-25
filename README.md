@@ -1,451 +1,180 @@
 # Olist E-Commerce Analytics Platform
 
-> **An end-to-end Analytics Engineering project transforming raw Brazilian e-commerce data into trusted, business-ready analytical models using Databricks, dbt, SQL, and Power BI.**
+![Databricks](https://img.shields.io/badge/Databricks-FF3621?style=flat&logo=databricks&logoColor=white)
+![dbt](https://img.shields.io/badge/dbt-FF694B?style=flat&logo=dbt&logoColor=white)
+![SQL](https://img.shields.io/badge/SQL-4479A1?style=flat&logo=postgresql&logoColor=white)
+![Power BI](https://img.shields.io/badge/Power%20BI-F2C811?style=flat&logo=powerbi&logoColor=black)
+![Unity Catalog](https://img.shields.io/badge/Unity%20Catalog-FF3621?style=flat&logo=databricks&logoColor=white)
 
-This project builds an analytics platform using the **Olist Brazilian E-Commerce dataset**. The goal is to transform raw operational data into reliable datasets that can be used for business analysis without requiring users to work directly with raw source tables.
+An end-to-end analytics engineering platform built on the **Olist Brazilian E-Commerce dataset**, using a **Bronze → Silver → Gold** lakehouse architecture (Databricks + Unity Catalog + dbt) to turn nine raw operational tables into a governed dimensional model consumed by Power BI.
 
-The project follows a **Bronze → Silver → Gold** architecture, with **dbt** managing the transformation and modeling layer.
+This repo is written to be read from two angles: as an **analytics engineer**, you'll find the modeling decisions and data-quality reasoning behind each layer; as a **business analyst**, you'll find the metrics the Gold layer was built to answer and the insights actually pulled from it.
 
 ---
 
-### Architecture
+## Platform at a glance
 
-```text
-Olist CSV Data
-      │
-      ▼
-Databricks + Unity Catalog
-      │
-      ▼
-   ┌─────────┐
-   │ BRONZE  │  Raw source tables
-   └────┬────┘
-        │
-        ▼
-      dbt
-        │
-        ▼
-   ┌─────────┐
-   │ SILVER  │  Cleaned & standardized
-   └────┬────┘
-        │
-        ▼
-      dbt
-        │
-        ▼
-   ┌─────────┐
-   │  GOLD   │  Facts & dimensions
-   └────┬────┘
-        │
-        ▼
-    Power BI
-        │
-        ▼
- Business Analytics
+| Metric | Value |
+|---|---|
+| Total Revenue | **R$13.59M** |
+| Total Orders | **99K** |
+| Total Customers | **96K** |
+| Average Order Value | **R$137.75** |
+| Repeat Customer Rate | **3.05%** |
+| Average Review Score | **4.09 / 5** |
+| Product Categories | **74** |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Olist CSV Source Data] --> B[Databricks + Unity Catalog]
+    B --> C[BRONZE — Raw Source Tables]
+    C --> D[dbt Transformation]
+    D --> E[SILVER — Cleaned & Standardized]
+    E --> F[dbt Transformation]
+    F --> G[GOLD — Facts & Dimensions]
+    G --> H[Power BI Semantic Model]
+    H --> I[Business Analytics]
 ```
 
-The architecture separates:
+The medallion pattern keeps three concerns separate that are easy to accidentally tangle together: **fidelity to source** (Bronze), **correctness of types and values** (Silver), and **business meaning** (Gold). Each layer can be debugged, re-run, or re-modeled independently of the others.
 
-**Raw Data → Transformation → Analytical Models → BI**
+### Dimensional model (Gold layer)
 
-This keeps the data pipeline modular, testable, and reusable.
-
----
-
-### Technology Stack
-
-| Area            | Technology                |
-| --------------- | ------------------------- |
-| Data Platform   | Databricks                |
-| Governance      | Unity Catalog             |
-| Transformation  | dbt + SQL                 |
-| Processing      | Spark / PySpark           |
-| Data Modeling   | Dimensional / Star Schema |
-| BI              | Power BI                  |
-| Version Control | Git / GitHub              |
-| Development     | VS Code                   |
-| Languages       | SQL / Python              |
-
----
-
-### Dataset
-
-The project uses the **Olist Brazilian E-Commerce dataset**, covering multiple areas of the marketplace:
-
-* Customers
-* Orders
-* Order Items
-* Products
-* Sellers
-* Payments
-* Reviews
-* Geolocation
-* Product Category Translation
-
-These datasets allow the platform to connect transactional, customer, product, seller, payment, logistics, and review information into a unified analytical model.
-
----
-
-### Project Context
-
-E-commerce data is distributed across multiple operational datasets. Analyzing these datasets independently makes it difficult to establish consistent metrics and relationships.
-
-This project creates a centralized analytical layer that transforms the source data into models designed around business questions such as:
-
-* How are sales changing over time?
-* Which product categories generate the most sales?
-* Which customers and regions contribute the most value?
-* How do sellers perform across different regions?
-* How long do orders take to reach customers?
-* Which payment methods are most commonly used?
-* How are customer reviews distributed?
-* How does delivery performance relate to customer experience?
-
----
-
-### Bronze Layer
-
-The Bronze layer contains the raw Olist source data loaded into Databricks and registered through Unity Catalog.
-
-```text
-e-commerce_olist
-└── bronze_data
-    ├── olist_customers_dataset
-    ├── olist_order_items_dataset
-    ├── olist_order_payments_dataset
-    ├── olist_order_reviews_dataset
-    ├── olist_orders_dataset
-    ├── olist_products_dataset
-    ├── olist_sellers_dataset
-    ├── olist_geolocation_dataset
-    └── product_category_name_translation
+```mermaid
+erDiagram
+    dim_customers ||--o{ fact_orders : places
+    dim_date ||--o{ fact_orders : occurs_on
+    fact_orders ||--o{ fact_payments : paid_via
+    fact_orders ||--o{ fact_reviews : reviewed_by
+    dim_products ||--o{ fact_order_items : contains
+    dim_sellers ||--o{ fact_order_items : sold_by
+    fact_orders ||--o{ fact_order_items : includes
 ```
 
-The Bronze layer is kept close to the original source so that raw information remains available for:
-
-* Auditing
-* Debugging
-* Reprocessing
-* Data lineage
-* Investigating source-data issues
-
-Source-quality issues are handled downstream rather than modifying the raw data directly.
+`fact_orders` sits at the center as the primary business event, with `fact_order_items`, `fact_payments`, and `fact_reviews` capturing the line-item, financial, and experience dimensions of that same event — one order can have multiple items, one or more payment installments, and at most one review.
 
 ---
 
-### Silver Layer
+## For the analytics engineer: how each layer earns its place
 
-The Silver layer transforms raw source tables into clean and standardized staging models using **dbt and SQL**.
+**Bronze — don't touch the source of truth**
+Raw Olist tables (`olist_customers_dataset`, `olist_orders_dataset`, `olist_order_items_dataset`, etc.) land in Unity Catalog untouched. Source-quality issues are *never* fixed here — they're handled downstream, so Bronze always stays reprocessable if a transformation rule turns out to be wrong.
 
-```text
-stg_customers
-stg_orders
-stg_order_items
-stg_order_payments
-stg_order_reviews
-stg_products
-stg_sellers
-stg_geolocation
-stg_category_translation
-```
-
-Transformations include:
-
-* Data type standardization
-* Null handling
-* String normalization
-* Timestamp conversion
-* Data validation
-* Filtering invalid records
-* Preparing consistent fields for downstream models
-
-Example:
+**Silver — normalize before anyone reasons about it**
+Staging models (`stg_orders`, `stg_products`, `stg_customers`, …) standardize types, handle nulls, normalize strings, and filter invalid records:
 
 ```sql
 CAST(price AS DECIMAL(12,2))
-```
-
-```sql
 CAST(order_purchase_timestamp AS TIMESTAMP)
-```
-
-```sql
 WHERE order_id IS NOT NULL
 ```
 
-The Silver layer provides a consistent foundation for the analytical models.
+This is the layer that absorbs how messy real operational data is, so Gold models never have to think about it.
 
----
+**Gold — one governed answer per business question**
+Facts and dimensions follow a star schema so BI tools (and analysts writing ad hoc SQL) get a single, join-friendly interface instead of reverse-engineering nine source tables every time.
 
-### Gold Layer
+**A real inconsistency worth flagging**
+Building the dashboards below surfaced something an analytics engineer should catch: the *Sales Analysis* page's category breakdown totals R$13.59M with `health_beauty` on top, while the *Product Analysis* page's category donut totals only R$1.33M with `bed_bath_table` on top. Same field, two different filter contexts, two different "top category" answers. That's exactly the kind of semantic drift a single governed Gold model and a shared Power BI semantic layer — rather than page-level ad hoc filters — is meant to prevent. It's noted here as an open item rather than papered over.
 
-The Gold layer contains the business-ready analytical models used by downstream analytics and Power BI.
-
-#### Dimensions
-
-```text
-dim_customers
-dim_products
-dim_sellers
-dim_date
-```
-
-#### Facts
-
-```text
-fact_orders
-fact_order_items
-fact_payments
-fact_reviews
-```
-
-These models follow a dimensional modeling approach and provide a structured interface for analytical queries and reporting.
-
----
-
-### Dimensional Model
-
-```text
-                     dim_date
-                        │
-                        ▼
-dim_customers ────► fact_orders
-                        │
-                 ┌──────┴──────┐
-                 ▼             ▼
-          fact_payments   fact_reviews
-
-
-dim_products ──► fact_order_items ◄── dim_sellers
-```
-
-The model separates descriptive dimensions from measurable business events, creating a structure suitable for analytical workloads and Power BI.
-
----
-
-### Data Quality
-
-Data quality is incorporated into the dbt transformation workflow.
-
-Tests cover areas such as:
-
-* Unique identifiers
-* Required fields
-* Accepted values
-* Source validation
-* Model relationships
-
-Examples include validation of:
-
-```text
-customer_id
-order_id
-product_id
-seller_id
-```
-
-and fields such as:
-
-```text
-order_status
-review_score
-```
-
-Raw source issues are handled in downstream models while keeping the original Bronze data available for investigation and lineage.
-
----
-
-### dbt
-
-dbt acts as the core transformation layer of the project.
-
-```text
-Bronze Sources
-      │
-      ▼
-Silver Staging Models
-      │
-      ▼
-Gold Analytical Models
-      │
-      ▼
-Power BI
-```
-
-The project uses core dbt functionality including:
-
-* `source()`
-* `ref()`
-* SQL models
-* Schema tests
-* Model dependencies
-* Reusable transformations
-* Documentation metadata
-
-Example source reference:
-
-```sql
-FROM {{ source('olist_bronze', 'olist_orders_dataset') }}
-```
-
-Example model dependency:
-
-```sql
-FROM {{ ref('stg_orders') }}
-```
-
-Using `ref()` allows dbt to understand relationships between models and construct the transformation workflow.
-
----
-
-### Power BI
-
-Power BI consumes the **Gold analytical layer** rather than the raw source data.
-
-```text
-Gold Models
-     │
-     ▼
-Power BI Semantic Model
-     │
-     ▼
-DAX Measures
-     │
-     ▼
-Dashboards & Reports
-```
-
-The analytical model supports reporting across:
-
-* Sales performance
-* Customer behavior
-* Product performance
-* Seller performance
-* Payment methods
-* Delivery performance
-* Freight costs
-* Customer reviews
-
-
-<img width="2116" height="1204" alt="Screenshot 2026-09-25 155729" src="https://github.com/user-attachments/assets/31ecc5c6-c598-45ac-ba4c-35b4cd48e592" />
-
-<img width="1846" height="1088" alt="Screenshot 2026-09-25 151441" src="https://github.com/user-attachments/assets/c4289bde-bc29-40b9-b0e9-c4252502c914" />
-
-<img width="1862" height="1044" alt="Screenshot 2026-09-25 151556" src="https://github.com/user-attachments/assets/c290d383-da0c-4806-9a3b-4c0ca6660cf8" />
-
-<img width="2164" height="1248" alt="Screenshot 2026-09-25 155648" src="https://github.com/user-attachments/assets/3fc3d038-250c-4c43-b5c5-a6b40e29dd28" />
-
-
-
-
-
-
-
-
-
----
-
-### Key Engineering Decisions
-
-**Preserve raw data**
-
-Bronze remains close to the source to maintain traceability and reproducibility.
-
-**Separate staging and analytical models**
-
-Silver focuses on cleaning and standardization, while Gold provides business-ready analytical structures.
-
-**Use dimensional modeling**
-
-Facts and dimensions provide a consistent structure for analytical queries and BI consumption.
-
-**Centralize transformations in dbt**
-
-SQL transformations, dependencies, and data-quality tests are maintained within the dbt project.
-
----
-
-### Running the Project
-
-Clone the repository:
-
-```bash
-git clone https://github.com/faizan171103/olist-databricks-lakehouse.git
-```
-
-Navigate to the project:
-
-```bash
-cd olist-databricks-lakehouse
-```
-
-Configure the local Databricks connection and then validate the dbt environment:
-
-```bash
-dbt debug
-```
-
-Build the models:
+**Data quality gates**
+dbt tests enforce uniqueness on `customer_id`, `order_id`, `product_id`, `seller_id`, and validate accepted values on fields like `order_status` and `review_score`, run as part of every build:
 
 ```bash
 dbt build
 ```
 
-Run the data-quality tests:
+---
+
+## For the business analyst: what the dashboards actually say
+
+### Overview
+<img width="2116" alt="Overview dashboard" src="https://github.com/user-attachments/assets/31ecc5c6-c598-45ac-ba4c-35b4cd48e592" />
+
+- Revenue climbed steadily from January into a **May peak (~R$1.5M)**, then dropped sharply in **September (~R$0.6M)** before partially recovering by November — a pattern consistent across both the revenue trend and order-volume charts, suggesting a genuine demand shift rather than a reporting artifact.
+- Average review score sits at **4.09**, indicating a generally satisfied customer base with room to investigate what's driving the lower-scoring tail.
+- `health_beauty`, `watches_gifts`, and `bed_bath_table` consistently rank as the top three categories by sales.
+
+### Sales Analysis
+<img width="1846" alt="Sales Analysis dashboard" src="https://github.com/user-attachments/assets/c4289bde-bc29-40b9-b0e9-c4252502c914" />
+
+- **Payment behavior is heavily card-driven**: credit card accounts for **73.9%** of transactions, boleto **19.0%**, with voucher and debit card together under 2%.
+- The overwhelming majority of orders are paid in a **single installment**, which combined with a modest R$137.75 average order value suggests customers are buying mid-ticket items outright rather than financing larger purchases.
+- Revenue is long-tail across categories: the top category (`health_beauty`) holds only **9.26%** of total revenue, meaning no single category is a single point of failure for the business.
+
+### Customer Analysis
+<img width="1862" alt="Customer Analysis dashboard" src="https://github.com/user-attachments/assets/c290d383-da0c-4806-9a3b-4c0ca6660cf8" />
+
+- The standout number on this page: **repeat customers are just 3.05%** of the base (2.91K of 96K). This is the single biggest lever in the whole dataset — at this order volume and AOV, even a modest improvement in retention would move total revenue more than any acquisition-channel optimization.
+- **Volume and value don't live in the same cities.** São Paulo and Rio de Janeiro dominate customer *count*, but the highest *average spend per customer* comes from smaller cities (Loreto, Pirpirituba, Barão Ataliba Nogueira) — a "top cities" dashboard sorted only by volume would miss where the highest-value customers actually are.
+
+### Product Analysis
+<img width="2164" alt="Product Analysis dashboard" src="https://github.com/user-attachments/assets/3fc3d038-250c-4c43-b5c5-a6b40e29dd28" />
+
+- `cama_mesa_banho` (bed/bath/table) is the most consistent performer — it leads **both** units sold and order count, meaning it's a genuinely high-frequency category rather than a high-price-per-unit skew.
+- The `computers` category has by far the **highest average price** (~R$1K) despite low volume elsewhere on the page — it behaves as a premium, low-frequency category rather than a volume driver.
+- The category revenue trend line shows `audio` spiking sharply in **August** (~R$150K, well above every other category) and collapsing immediately after — a strong signal of a one-off promotion or seasonal event worth investigating rather than treating as a stable trend.
+
+---
+
+## Tech stack
+
+| Area | Technology |
+|---|---|
+| Data Platform | Databricks |
+| Governance | Unity Catalog |
+| Transformation | dbt + SQL |
+| Processing | Spark / PySpark |
+| Data Modeling | Dimensional / Star Schema |
+| BI | Power BI |
+| Version Control | Git / GitHub |
+
+---
+
+## Project structure
+
+```text
+olist-databricks-lakehouse/
+├── models/
+│   ├── bronze/           # Raw source references (Unity Catalog)
+│   ├── silver/            # stg_* cleaning & standardization models
+│   └── gold/               # dim_* and fact_* models
+├── tests/                     # dbt schema & data tests
+├── macros/
+├── powerbi/
+│   └── dashboard_screenshots/
+├── dbt_project.yml
+└── README.md
+```
+
+---
+
+## Getting started
 
 ```bash
+# Clone
+git clone https://github.com/faizan171103/olist-databricks-lakehouse.git
+cd olist-databricks-lakehouse
+
+# Configure your Databricks connection, then validate
+dbt debug
+
+# Build the full Bronze → Silver → Gold pipeline
+dbt build
+
+# Run data-quality tests in isolation
 dbt test
 ```
 
 ---
-
-### Project Outcome
-
-The final platform creates a complete path from raw operational data to business analytics:
-
-```text
-Raw Olist Data
-      │
-      ▼
-  Databricks
-      │
-      ▼
-    Bronze
-      │
-      ▼
-     dbt
-      │
-      ▼
-    Silver
-      │
-      ▼
-     dbt
-      │
-      ▼
-     Gold
-      │
-      ▼
-Dimensional Model
-      │
-      ▼
-   Power BI
-      │
-      ▼
-Business Analytics
-```
-
-The project demonstrates practical Analytics Engineering across:
-
-**SQL · dbt · Data Modeling · Data Quality · Databricks · Lakehouse Architecture · Git · Power BI**
-
 ---
 
-### Author
+## Author
 
 **Mohd Faizanul Haque**
-
-Data Analytics / Analytics Engineering Portfolio
-
-[GitHub — @faizan171103](https://github.com/faizan171103)
-
-
+Analytics Engineering · Data Modeling · Business Intelligence
+GitHub: [@faizan171103](https://github.com/faizan171103)
