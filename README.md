@@ -327,10 +327,17 @@ The analytical model supports reporting across:
 * Customer reviews
 
 
-<img width="1996" height="1110" alt="image" src="https://github.com/user-attachments/assets/7c8b3c63-b5de-4901-9008-358351b1ffa8" />
+<img width="2116" height="1204" alt="Screenshot 2026-09-25 155729" src="https://github.com/user-attachments/assets/31ecc5c6-c598-45ac-ba4c-35b4cd48e592" />
+
+<img width="1846" height="1088" alt="Screenshot 2026-09-25 151441" src="https://github.com/user-attachments/assets/c4289bde-bc29-40b9-b0e9-c4252502c914" />
+
+<img width="1862" height="1044" alt="Screenshot 2026-09-25 151556" src="https://github.com/user-attachments/assets/c290d383-da0c-4806-9a3b-4c0ca6660cf8" />
+
+<img width="2164" height="1248" alt="Screenshot 2026-09-25 155648" src="https://github.com/user-attachments/assets/3fc3d038-250c-4c43-b5c5-a6b40e29dd28" />
 
 
-<img width="1998" height="1126" alt="image" src="https://github.com/user-attachments/assets/1587b352-8907-41f9-b6d0-7460b13e5da6" />
+
+
 
 
 
