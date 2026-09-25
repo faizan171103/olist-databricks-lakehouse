@@ -42,21 +42,12 @@ flowchart TD
 
 The medallion pattern keeps three concerns separate that are easy to accidentally tangle together: **fidelity to source** (Bronze), **correctness of types and values** (Silver), and **business meaning** (Gold). Each layer can be debugged, re-run, or re-modeled independently of the others.
 
-### Dimensional model (Gold layer)
+### Dimensional model 
 
-```mermaid
-erDiagram
-    dim_customers ||--o{ fact_orders : places
-    dim_date ||--o{ fact_orders : occurs_on
-    fact_orders ||--o{ fact_payments : paid_via
-    fact_orders ||--o{ fact_reviews : reviewed_by
-    dim_products ||--o{ fact_order_items : contains
-    dim_sellers ||--o{ fact_order_items : sold_by
-    fact_orders ||--o{ fact_order_items : includes
-```
+![Uploading image.png…]()
 
-`fact_orders` sits at the center as the primary business event, with `fact_order_items`, `fact_payments`, and `fact_reviews` capturing the line-item, financial, and experience dimensions of that same event — one order can have multiple items, one or more payment installments, and at most one review.
 
+`
 ---
 
 ## For the analytics engineer: how each layer earns its place
@@ -90,7 +81,6 @@ dbt build
 
 ---
 
-## For the business analyst: what the dashboards actually say
 
 ### Overview
 <img width="2116" alt="Overview dashboard" src="https://github.com/user-attachments/assets/31ecc5c6-c598-45ac-ba4c-35b4cd48e592" />
@@ -120,6 +110,20 @@ dbt build
 - The category revenue trend line shows `audio` spiking sharply in **August** (~R$150K, well above every other category) and collapsing immediately after — a strong signal of a one-off promotion or seasonal event worth investigating rather than treating as a stable trend.
 
 ---
+## Some reccomendation
+
+
+Payment is 74% credit card and almost entirely single-installment, yet AOV is only R$137.75. That combination usually means customers are buying safely within a "no-financing-needed" comfort zone. Testing installment options specifically on higher-ticket categories (computers, furniture_decor) could lift AOV without touching conversion on the cheap end.
+Revenue is long-tail  the #1 category (health_beauty) is only 9.26% of total revenue. That's actually a resilience strength, but it also means there's no single "hero category" carrying growth. A cross-sell strategy (bundle bed_bath_table + housewares, both top performers) is more likely to move the needle than trying to make one category bigger.
+
+
+The May peak and September crash (~1.5M → ~0.6M) repeat almost identically in both revenue and order-count charts, which rules out a pricing anomaly it's a demand or supply event. Before running a Q3 promo calendar, this is worth investigating: was Sept a stockout, a logistics disruption, or just seasonal? (You'd want delivery_status and inventory data joined in to confirm — not currently in the Gold model.)
+
+
+The audio spike in August (~R$150K, dwarfing every other category) followed by an immediate crash is a strong signal of a one-off promo or viral moment. If you can identify what drove it, it's a replicable playbook for other stagnant categories rather than a one-time fluke.
+computers has the highest average price but doesn't show up as a volume leader anywhere else — it behaves like a premium, considered-purchase category. Financing/installments (again, underused platform-wide) is the natural lever there.
+Retention — the highest-leverage number on the whole platform
+
 
 ## Tech stack
 
